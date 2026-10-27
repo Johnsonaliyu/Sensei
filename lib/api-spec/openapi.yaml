@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: sensei
+    description: Sensei chatbot workspace operations
 paths:
   /healthz:
     get:
@@ -24,7 +26,137 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /sensei/dashboard:
+    get:
+      operationId: getSenseiDashboard
+      tags: [sensei]
+      summary: Get the signed-in business dashboard
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /sensei/bot-config:
+    get:
+      operationId: getBotConfig
+      tags: [sensei]
+      summary: Get the business chatbot configuration
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current chatbot configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotConfig"
+    put:
+      operationId: saveBotConfig
+      tags: [sensei]
+      summary: Save the business chatbot configuration
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BotConfigInput"
+      responses:
+        "200":
+          description: Saved chatbot configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BotConfig"
+  /sensei/whatsapp/status:
+    get:
+      operationId: getWhatsappStatus
+      tags: [sensei]
+      summary: Get WhatsApp connection status
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: WhatsApp connection details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappStatus"
+  /sensei/whatsapp/connect:
+    post:
+      operationId: connectWhatsapp
+      tags: [sensei]
+      summary: Start WhatsApp QR pairing
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Pairing QR code and connection state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappStatus"
+  /sensei/whatsapp/disconnect:
+    post:
+      operationId: disconnectWhatsapp
+      tags: [sensei]
+      summary: Disconnect the business WhatsApp session
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Disconnection result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WhatsappStatus"
+  /sensei/ai/test:
+    post:
+      operationId: testBotReply
+      tags: [sensei]
+      summary: Test the configured chatbot with a sample message
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestBotInput"
+      responses:
+        "200":
+          description: Generated chatbot response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestBotReply"
+  /sensei/conversations:
+    get:
+      operationId: listConversations
+      tags: [sensei]
+      summary: List recent customer conversations
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Recent conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ConversationSummary"
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +165,207 @@ components:
           type: string
       required:
         - status
+    UseCase:
+      type: string
+      enum:
+        - customer_support
+        - lead_generation
+        - appointment_booking
+        - order_updates
+        - faq_assistant
+        - custom
+    BotTone:
+      type: string
+      enum:
+        - friendly
+        - professional
+        - concise
+        - warm
+    ConnectionState:
+      type: string
+      enum:
+        - disconnected
+        - connecting
+        - qr_ready
+        - connected
+        - reconnecting
+        - error
+    ConversationState:
+      type: string
+      enum:
+        - open
+        - resolved
+        - needs_human
+    BotConfig:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        businessName:
+          type: string
+        useCase:
+          $ref: "#/components/schemas/UseCase"
+        description:
+          type: string
+        systemPrompt:
+          type: string
+        welcomeMessage:
+          type: string
+        tone:
+          $ref: "#/components/schemas/BotTone"
+        isActive:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - businessName
+        - useCase
+        - description
+        - systemPrompt
+        - welcomeMessage
+        - tone
+        - isActive
+        - updatedAt
+    BotConfigInput:
+      type: object
+      properties:
+        businessName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        useCase:
+          $ref: "#/components/schemas/UseCase"
+        description:
+          type: string
+          maxLength: 2000
+        systemPrompt:
+          type: string
+          maxLength: 8000
+        welcomeMessage:
+          type: string
+          maxLength: 1000
+        tone:
+          $ref: "#/components/schemas/BotTone"
+        isActive:
+          type: boolean
+      required:
+        - businessName
+        - useCase
+        - description
+        - systemPrompt
+        - welcomeMessage
+        - tone
+        - isActive
+    DashboardSummary:
+      type: object
+      properties:
+        businessName:
+          type: string
+        botActive:
+          type: boolean
+        whatsappStatus:
+          $ref: "#/components/schemas/ConnectionState"
+        whatsappPhone:
+          type: ["string", "null"]
+        useCase:
+          $ref: "#/components/schemas/UseCase"
+        conversationsToday:
+          type: integer
+        messagesThisMonth:
+          type: integer
+        responseRate:
+          type: number
+        recentConversations:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationSummary"
+      required:
+        - businessName
+        - botActive
+        - whatsappStatus
+        - whatsappPhone
+        - useCase
+        - conversationsToday
+        - messagesThisMonth
+        - responseRate
+        - recentConversations
+    WhatsappStatus:
+      type: object
+      properties:
+        connectionState:
+          $ref: "#/components/schemas/ConnectionState"
+        phoneNumber:
+          type: ["string", "null"]
+        connectedAt:
+          type: ["string", "null"]
+          format: date-time
+        qrCodeDataUrl:
+          type: ["string", "null"]
+        qrExpiresAt:
+          type: ["string", "null"]
+          format: date-time
+        error:
+          type: ["string", "null"]
+      required:
+        - connectionState
+        - phoneNumber
+        - connectedAt
+        - qrCodeDataUrl
+        - qrExpiresAt
+        - error
+    TestBotInput:
+      type: object
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 4000
+      required:
+        - message
+    TestBotReply:
+      type: object
+      properties:
+        reply:
+          type: string
+        provider:
+          type: string
+          enum:
+            - groq
+            - nvidia
+        usedFallback:
+          type: boolean
+      required:
+        - reply
+        - provider
+        - usedFallback
+    ConversationSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        customerName:
+          type: string
+        customerPhone:
+          type: string
+        preview:
+          type: string
+        lastMessageAt:
+          type: string
+          format: date-time
+        unreadCount:
+          type: integer
+        state:
+          $ref: "#/components/schemas/ConversationState"
+      required:
+        - id
+        - customerName
+        - customerPhone
+        - preview
+        - lastMessageAt
+        - unreadCount
+        - state
 

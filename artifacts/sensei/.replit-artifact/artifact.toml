@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Sensei"
+description = "A multi-tenant WhatsApp chatbot workspace where businesses connect a number, choose a use case, configure their assistant, and manage customer conversations."
+version = "1.0.0"
+id = "artifacts/sensei"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22517
+
+[services.development]
+run = "pnpm --filter @workspace/sensei run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/sensei", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/sensei/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22517"
+BASE_PATH = "/"
