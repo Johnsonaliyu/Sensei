@@ -24,6 +24,18 @@ const PROVIDERS: Array<{
   },
 ];
 
+function toWhatsappText(raw: string): string {
+  return raw
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .replace(/^\s*[*•]\s+/gm, "- ")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/__(.+?)__/g, "$1")
+    .replace(/^\s*#{1,6}\s*/gm, "")
+    .replace(/`+/g, "")
+    .trim();
+      }
+
 async function requestProvider(
   provider: (typeof PROVIDERS)[number],
   systemPrompt: string,
@@ -55,7 +67,7 @@ async function requestProvider(
   };
   const reply = result.choices?.[0]?.message?.content?.trim();
   if (!reply) throw new Error(`${provider.name} returned an empty response.`);
-  return reply;
+    return toWhatsappText(reply);
 }
 
 export async function generateReply(
@@ -70,6 +82,7 @@ export async function generateReply(
     `Communication tone: ${config.tone}.`,
     config.systemPrompt,
     "Be accurate, concise, and helpful. Do not invent business policies, prices, bookings, or order details.",
+        "Write plain text for WhatsApp. Never use asterisks, markdown, bold, headings or tables. Use short lines and simple numbered lists.",
     "You are in an ongoing conversation. Read the earlier messages and remember what the customer already told you. Do not ask again for details they already gave.",
   ]
     .filter(Boolean)
