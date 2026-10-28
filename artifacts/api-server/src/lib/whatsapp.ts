@@ -188,7 +188,20 @@ async function persistIncomingMessage(
   const config = await readBotConfig(userId);
   if (!config.isActive) return;
 
-  const generated = await generateReply(config, text);
+    const { data: recent } = await client
+    .from("sensei_messages")
+    .select("direction, content")
+    .eq("user_id", userId)
+    .eq("conversation_id", conversation.id)
+    .order("sent_at", { ascending: false })
+    .limit(20);
+  const history = (recent ?? [])
+    .reverse()
+    .map((row) => ({
+      role: row.direction === "outbound" ? ("assistant" as const) : ("user" as const),
+      content: String(row.content),
+    }));
+  const generated = await generateReply(config, text, history);
   await socket.sendMessage(remoteJid, { text: generated.reply });
   const sentAt = new Date().toISOString();
   const { error: outboundError } = await client.from("sensei_messages").insert({
