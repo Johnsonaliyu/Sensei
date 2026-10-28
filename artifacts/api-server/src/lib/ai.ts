@@ -2,6 +2,7 @@ import type { BotConfig } from "@workspace/api-zod";
 
 type Provider = "groq" | "nvidia";
 type ChatResult = { reply: string; provider: Provider; usedFallback: boolean };
+export type ChatTurn = { role: "user" | "assistant"; content: string };
 
 const PROVIDERS: Array<{
   name: Provider;
@@ -26,7 +27,7 @@ const PROVIDERS: Array<{
 async function requestProvider(
   provider: (typeof PROVIDERS)[number],
   systemPrompt: string,
-  message: string,
+  turns: ChatTurn[],
 ): Promise<string> {
   if (!provider.key) throw new Error(`${provider.name} is not configured.`);
 
@@ -38,10 +39,7 @@ async function requestProvider(
     },
     body: JSON.stringify({
       model: provider.model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: message },
-      ],
+      messages: [{ role: "system", content: systemPrompt }, ...turns],
       temperature: 0.4,
       max_tokens: 700,
     }),
@@ -63,6 +61,7 @@ async function requestProvider(
 export async function generateReply(
   config: Pick<BotConfig, "businessName" | "useCase" | "description" | "systemPrompt" | "tone">,
   message: string,
+  history: ChatTurn[] = [],
 ): Promise<ChatResult> {
   const systemPrompt = [
     `You are the WhatsApp assistant for ${config.businessName}.`,
@@ -71,14 +70,19 @@ export async function generateReply(
     `Communication tone: ${config.tone}.`,
     config.systemPrompt,
     "Be accurate, concise, and helpful. Do not invent business policies, prices, bookings, or order details.",
+    "You are in an ongoing conversation. Read the earlier messages and remember what the customer already told you. Do not ask again for details they already gave.",
   ]
     .filter(Boolean)
     .join("\n");
 
+  const turns: ChatTurn[] = history.length
+    ? history
+    : [{ role: "user", content: message }];
+
   let primaryError: unknown;
   try {
     return {
-      reply: await requestProvider(PROVIDERS[0], systemPrompt, message),
+      reply: await requestProvider(PROVIDERS[0], systemPrompt, turns),
       provider: "groq",
       usedFallback: false,
     };
@@ -88,7 +92,7 @@ export async function generateReply(
 
   try {
     return {
-      reply: await requestProvider(PROVIDERS[1], systemPrompt, message),
+      reply: await requestProvider(PROVIDERS[1], systemPrompt, turns),
       provider: "nvidia",
       usedFallback: true,
     };
