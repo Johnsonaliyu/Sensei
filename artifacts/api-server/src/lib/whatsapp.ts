@@ -201,8 +201,18 @@ async function persistIncomingMessage(
       role: row.direction === "outbound" ? ("assistant" as const) : ("user" as const),
       content: String(row.content),
     }));
-  const generated = await generateReply(config, text, history);
+  await socket.sendPresenceUpdate("composing", remoteJid).catch(() => undefined);
+  const typingTimer = setInterval(() => {
+    void socket.sendPresenceUpdate("composing", remoteJid).catch(() => undefined);
+  }, 8_000);
+  let generated: Awaited<ReturnType<typeof generateReply>>;
+  try {
+    generated = await generateReply(config, text, history);
+  } finally {
+    clearInterval(typingTimer);
+  }
   await socket.sendMessage(remoteJid, { text: generated.reply });
+  await socket.sendPresenceUpdate("paused", remoteJid).catch(() => undefined);
   const sentAt = new Date().toISOString();
   const { error: outboundError } = await client.from("sensei_messages").insert({
     user_id: userId,
