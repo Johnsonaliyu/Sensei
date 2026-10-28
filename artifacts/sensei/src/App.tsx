@@ -115,6 +115,85 @@ function timeAgo(date: string) {
 function initials(name: string) { return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '').join(''); }
 function formatUseCase(value: string) { return value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
 
+function renderInlineMarkdown(text: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const pattern = /\*\*([^*\n]+)\*\*|__([^_\n]+)__|`([^`\n]+)`|\*([^*\n]+)\*|_([^_\n]+)_/g;
+  let lastIndex = 0;
+
+  for (const match of text.matchAll(pattern)) {
+    const index = match.index ?? 0;
+    if (index > lastIndex) nodes.push(text.slice(lastIndex, index));
+    const content = match[1] ?? match[2] ?? match[3] ?? match[4] ?? match[5] ?? '';
+    const key = `inline-${index}`;
+    if (match[1] || match[2]) nodes.push(<strong key={key}>{content}</strong>);
+    else if (match[3]) nodes.push(<code key={key}>{content}</code>);
+    else nodes.push(<em key={key}>{content}</em>);
+    lastIndex = index + match[0].length;
+  }
+
+  if (lastIndex < text.length) nodes.push(text.slice(lastIndex));
+  return nodes.length ? nodes : [text];
+}
+
+function AssistantMessage({ text }: { text: string }) {
+  const normalized = text
+    .replace(/\r\n?/g, '\n')
+    .replace(/([^\n])\s+[*•]\s+(?=(?:\*\*|__|`|[A-Z]))/g, '$1\n- ')
+    .replace(/([^\n])\s+(\d{1,2}[.)])\s+(?=(?:\*\*|__|[A-Z]))/g, '$1\n$2 ')
+    .trim();
+  const blocks: ReactNode[] = [];
+  let paragraph: string[] = [];
+  let listItems: { text: string; ordered: boolean }[] = [];
+
+  const flushParagraph = () => {
+    const content = paragraph.join(' ').trim();
+    if (content) blocks.push(<p key={`paragraph-${blocks.length}`}>{renderInlineMarkdown(content)}</p>);
+    paragraph = [];
+  };
+  const flushList = () => {
+    if (!listItems.length) return;
+    const isOrdered = listItems[0].ordered;
+    const List = isOrdered ? 'ol' : 'ul';
+    blocks.push(<List key={`list-${blocks.length}`}>{listItems.map((item, index) => <li key={index}>{renderInlineMarkdown(item.text)}</li>)}</List>);
+    listItems = [];
+  };
+
+  for (const rawLine of normalized.split('\n')) {
+    const line = rawLine.trim();
+    if (!line) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    const heading = line.match(/^(#{1,3})\s+(.+)$/);
+    if (heading) {
+      flushParagraph();
+      flushList();
+      const Heading = heading[1].length === 1 ? 'h3' : 'h4';
+      blocks.push(<Heading key={`heading-${blocks.length}`}>{renderInlineMarkdown(heading[2])}</Heading>);
+      continue;
+    }
+
+    const unordered = line.match(/^[-*+•]\s+(.+)$/);
+    const ordered = line.match(/^\d+[.)]\s+(.+)$/);
+    if (unordered || ordered) {
+      flushParagraph();
+      const isOrdered = Boolean(ordered);
+      if (listItems.length && listItems[0].ordered !== isOrdered) flushList();
+      listItems.push({ text: (unordered ?? ordered)![1], ordered: isOrdered });
+      continue;
+    }
+
+    flushList();
+    paragraph.push(line);
+  }
+
+  flushParagraph();
+  flushList();
+  return <div className="chat-markdown">{blocks.length ? blocks : renderInlineMarkdown(text)}</div>;
+}
+
 function ConversationRows({ conversations }: { conversations: ConversationSummary[] }) {
   if (!conversations.length) return <div className="empty-state"><div className="empty-icon"><MessageSquare size={20}/></div><h3>No conversations yet</h3><p>When a customer sends your business a message, the conversation will show up here.</p></div>;
   return <div>{conversations.map((item) => <div className="conversation-row" key={item.id} data-testid={`row-conversation-${item.id}`}><div className="avatar">{initials(item.customerName) || <Users size={15}/>}</div><div className="conversation-main"><strong>{item.customerName || item.customerPhone}</strong><p>{item.preview}</p></div><div className="conversation-meta"><div>{timeAgo(item.lastMessageAt)}</div>{item.unreadCount > 0 && <span className="unread">{item.unreadCount}</span>}</div></div>)}</div>;
@@ -220,7 +299,33 @@ function AssistantPage() {
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}><button className="btn btn-primary" type="submit" disabled={save.isPending} data-testid="button-save-assistant-form">{save.isPending ? 'Saving changes…' : 'Save assistant'}</button></div>
         </div>
       </form>
-      <section className="panel test-panel"><div className="test-header"><div><h2>Try a conversation</h2><p>Test your assistant before customers do.</p></div><span className="live-tag">SANDBOX</span></div><div className="chat-window">{testHistory.length === 0 ? <><div className="chat-bubble bot">{form.welcomeMessage || 'Your assistant’s first message will appear here.'}</div><div style={{ margin: 'auto', textAlign: 'center', maxWidth: 215, color: '#95a09f', fontSize: 10, lineHeight: 1.6 }}><Sparkles size={17} style={{ marginBottom: 8, color: '#659579' }}/><br/>Send a sample message to see how your assistant responds.</div></> : testHistory.map((entry, index) => <div key={`${index}-${entry.role}`} className={`chat-bubble ${entry.role === 'bot' ? 'bot' : 'user'}`}>{entry.text}</div>)}{testReply.isPending && <div className="chat-bubble bot"><span className="skeleton" style={{ display: 'inline-block', width: 122 }}/></div>}</div><form className="chat-compose" onSubmit={sendTest}><input value={testMessage} onChange={(event) => setTestMessage(event.target.value)} placeholder="Write a test message…" aria-label="Test message" data-testid="input-test-message"/><button className="btn btn-primary btn-small" type="submit" disabled={!testMessage.trim() || testReply.isPending} aria-label="Send test message" data-testid="button-send-test"><Send size={14}/></button></form>{testReply.data && <div className="chat-meta">Powered by {testReply.data.provider === 'groq' ? 'Groq' : 'NVIDIA'}{testReply.data.usedFallback ? ' · fallback response' : ''}</div>}</section>
+      <section className="panel test-panel">
+        <div className="test-header">
+          <div><h2>Try a conversation</h2><p>Test your assistant before customers do.</p></div>
+          <span className="live-tag">SANDBOX</span>
+        </div>
+        <div className="chat-window">
+          {testHistory.length === 0 ? <>
+            <div className="chat-bubble bot" data-testid="assistant-welcome-message">
+              <AssistantMessage text={form.welcomeMessage || 'Your assistant’s first message will appear here.'}/>
+            </div>
+            <div style={{ margin: 'auto', textAlign: 'center', maxWidth: 215, color: '#95a09f', fontSize: 10, lineHeight: 1.6 }}>
+              <Sparkles size={17} style={{ marginBottom: 8, color: '#659579' }}/><br/>
+              Send a sample message to see how your assistant responds.
+            </div>
+          </> : testHistory.map((entry, index) =>
+            <div key={`${index}-${entry.role}`} className={`chat-bubble ${entry.role === 'bot' ? 'bot' : 'user'}`} data-testid={`chat-message-${index}-${entry.role}`}>
+              {entry.role === 'bot' ? <AssistantMessage text={entry.text}/> : entry.text}
+            </div>
+          )}
+          {testReply.isPending && <div className="chat-bubble bot"><span className="skeleton" style={{ display: 'inline-block', width: 122 }}/></div>}
+        </div>
+        <form className="chat-compose" onSubmit={sendTest}>
+          <input value={testMessage} onChange={(event) => setTestMessage(event.target.value)} placeholder="Write a test message…" aria-label="Test message" data-testid="input-test-message"/>
+          <button className="btn btn-primary btn-small" type="submit" disabled={!testMessage.trim() || testReply.isPending} aria-label="Send test message" data-testid="button-send-test"><Send size={14}/></button>
+        </form>
+        {testReply.data && <div className="chat-meta">Powered by {testReply.data.provider === 'groq' ? 'Groq' : 'NVIDIA'}{testReply.data.usedFallback ? ' · fallback response' : ''}</div>}
+      </section>
     </div>}
   </div></AppShell>;
 }

@@ -547,3 +547,14 @@ h1,h2,h3,p { margin-top:0; }.page-heading h1 { font:700 clamp(25px,3vw,34px) Man
 @media(max-width:980px){.sidebar{width:215px;flex-basis:215px}.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.assistant-layout,.settings-layout{grid-template-columns:1fr}.test-panel{position:static}.marketing-hero{gap:25px}.hero-art{min-height:340px}}
 @media(max-width:760px){.sidebar{display:none}.topbar{height:60px;padding:0 18px}.page-wrap{padding:27px 17px 45px}.page-heading{align-items:flex-start;flex-direction:column;margin-bottom:21px}.stat-grid{gap:10px}.stat-card{padding:15px;min-height:122px}.grid-two{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.span-two{grid-column:auto}.choice-grid{grid-template-columns:1fr}.marketing-nav{padding:0 18px;height:66px}.marketing-links{display:none}.marketing-hero{padding:47px 18px 52px;grid-template-columns:1fr;gap:30px}.hero-copy h1{letter-spacing:-2.5px}.hero-art{min-height:330px}.marketing-section{padding:49px 19px}.feature-band{padding:50px 19px}.feature-grid,.how-grid{grid-template-columns:1fr}.feature-grid{gap:11px}.how-grid{gap:16px}.quote-band{padding:48px 22px}.footer{padding:22px 19px;gap:15px;flex-wrap:wrap}.footer-links{gap:12px}.auth-page{grid-template-columns:1fr}.auth-aside{display:none}.auth-form-side{padding:28px 22px;min-height:100dvh}.auth-card .brand{display:flex;color:#273846;margin-bottom:38px;padding:0}.auth-card h2{font-size:25px}.top-status{font-size:0;padding:9px}.top-status .status-dot{margin:0}.top-actions{gap:8px}.conversation-meta{font-size:9px}.page-heading .btn{align-self:flex-start}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+.chat-bubble{font-size:12px;line-height:1.6}
+.chat-markdown p{margin:0 0 9px}
+.chat-markdown p:last-child{margin-bottom:0}
+.chat-markdown ul,.chat-markdown ol{margin:0 0 9px;padding-left:19px}
+.chat-markdown ul:last-child,.chat-markdown ol:last-child{margin-bottom:0}
+.chat-markdown li+li{margin-top:5px}
+.chat-markdown li::marker{color:#73917f}
+.chat-markdown strong{color:#2f4a3b;font-weight:700}
+.chat-markdown h3,.chat-markdown h4{font-size:12px;line-height:1.45;margin:0 0 7px;color:#33473b}
+.chat-markdown code{font-family:'IBM Plex Mono',monospace;font-size:.92em;background:#f0f3ef;padding:1px 4px;border-radius:4px}
