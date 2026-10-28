@@ -475,3 +475,23 @@ export async function disconnectWhatsapp(userId: string): Promise<WhatsappStatus
 export async function loadBotConfigForUser(userId: string): Promise<BotConfig> {
   return readBotConfig(userId);
 }
+
+export async function restoreSavedWhatsappSessions(): Promise<void> {
+  try {
+    const { data, error } = await getSupabaseAdmin()
+      .from("sensei_whatsapp_sessions")
+      .select("user_id, encrypted_auth_state, connection_state, phone_number, connected_at, error_message")
+      .not("encrypted_auth_state", "is", null)
+      .in("connection_state", ["connected", "reconnecting"]);
+    if (error) throw error;
+
+    for (const row of (data ?? []) as Array<StoredSession & { user_id: string }>) {
+      if (sessions.get(row.user_id)?.socket) continue;
+      void createSession(row.user_id, row).catch((err: unknown) => {
+        logger.warn({ err, userId: row.user_id }, "Automatic WhatsApp restore failed");
+      });
+    }
+  } catch (err) {
+    logger.error({ err }, "Could not check saved WhatsApp sessions");
+  }
+}
