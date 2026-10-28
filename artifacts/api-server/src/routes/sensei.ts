@@ -43,7 +43,8 @@ router.use(async (req: Request, res: Response, next: NextFunction): Promise<void
     }
     (req as AuthenticatedRequest).senseiUserId = user.id;
     next();
-  } catch {
+    } catch (error) {
+    console.error("AUTH_ERROR:", error);
     res.status(503).json({ error: "Sensei could not verify your session." });
   }
 });
