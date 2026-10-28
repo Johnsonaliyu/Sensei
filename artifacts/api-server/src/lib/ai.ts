@@ -13,13 +13,13 @@ const PROVIDERS: Array<{
     name: "groq",
     endpoint: "https://api.groq.com/openai/v1/chat/completions",
     key: process.env.GROQ_API_KEY,
-    model: process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile",
+    model: process.env.GROQ_MODEL ?? "qwen/qwen3.8-27b",
   },
   {
     name: "nvidia",
     endpoint: "https://integrate.api.nvidia.com/v1/chat/completions",
     key: process.env.NVIDIA_API_KEY,
-    model: process.env.NVIDIA_MODEL ?? "meta/llama-3.3-70b-instruct",
+    model: process.env.NVIDIA_MODEL ?? "nvidia/nemotron-3.5-lightning-30b-a3b",
   },
 ];
 
