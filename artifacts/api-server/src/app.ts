@@ -1,6 +1,8 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -30,5 +32,24 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
+
+if (process.env.NODE_ENV === "production") {
+  const frontendDir = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../../sensei/dist/public",
+  );
+
+  app.use(express.static(frontendDir, { index: false }));
+  app.get("/{*splat}", (req, res, next) => {
+    if (req.path.startsWith("/api/")) {
+      next();
+      return;
+    }
+
+    res.sendFile("index.html", { root: frontendDir }, (error) => {
+      if (error) next(error);
+    });
+  });
+}
 
 export default app;

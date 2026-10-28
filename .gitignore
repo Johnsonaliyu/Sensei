@@ -17,6 +17,14 @@ out-tsc
 # dependencies
 node_modules
 
+# local environment secrets
+.env
+.env.*
+!.env.example
+
+# imported source archive (the extracted project is tracked instead)
+/zipFile.zip
+
 # IDEs and editors
 /.idea
 .project

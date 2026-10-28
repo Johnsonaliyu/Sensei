@@ -1,15 +1,17 @@
-# [Project name]
+# Sensei
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Sensei is a WhatsApp business assistant with a web workspace for configuring an AI assistant and managing customer conversations.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/sensei run dev` — run the web preview
+- `pnpm --filter @workspace/api-server run dev` — run the API server
 - `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
+- `PORT=5173 BASE_PATH=/ pnpm run build` — typecheck + build workspace artifacts
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Run `supabase/migrations/20261027_sensei.sql` in the Supabase SQL Editor to initialize the schema.
+- Required secrets: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `GROQ_API_KEY`; `NVIDIA_API_KEY` enables the AI fallback.
+- Railway build/start settings are in `railway.json`; production serves the web app and API from one service.
 
 ## Stack
 
@@ -22,24 +24,30 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/sensei` — React/Vite web app
+- `artifacts/api-server` — Express API and WhatsApp integration
+- `lib/api-spec`, `lib/api-zod`, `lib/api-client-react` — API contract and generated client
+- `supabase/migrations` — database schema and access policies
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Supabase Auth is the identity provider; the API verifies user access tokens.
+- WhatsApp session state is encrypted and persisted in Supabase.
+- Groq is the primary AI provider; NVIDIA is the optional fallback.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Businesses can configure an assistant, pair a WhatsApp number, and review customer conversations.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
-
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Vite needs `PORT` and `BASE_PATH` at build time; set `PORT=5173 BASE_PATH=/` for standalone production builds.
+- Apply the Supabase migration before signing in or using the dashboard.
+- Never publish `.env` or expose the Supabase service-role key to the frontend.
 
 ## Pointers
 
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- `README.md` contains local setup and GitHub-to-Railway deployment steps.
+- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details.
