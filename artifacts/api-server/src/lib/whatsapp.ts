@@ -381,6 +381,7 @@ async function createSession(userId: string, stored?: StoredSession | null): Pro
       }
     });
     socket.ev.on("messages.upsert", async ({ messages, type }) => {
+    logger.info({ type, count: messages.length, userId }, "WhatsApp messages received");
       if (type !== "notify") return;
       for (const message of messages) {
         try {
