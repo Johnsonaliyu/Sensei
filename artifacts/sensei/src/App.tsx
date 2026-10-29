@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type FormEvent
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createClient, type Session } from '@supabase/supabase-js';
 import {
-  Activity, ArrowDownRight, ArrowRight, Bot, Building2, Check, CheckCircle2, CircleHelp,
+  Activity, ArrowDownRight, ArrowRight, Eye, EyeOff, Bot, Building2, Check, CheckCircle2, CircleHelp,
   FileText, LogOut, MessageCircle, MessageSquare, Phone, QrCode, RefreshCw, Search, Send,
   Settings as SettingsIcon, ShieldCheck, Sparkles, Users, Wifi,
 } from 'lucide-react';
