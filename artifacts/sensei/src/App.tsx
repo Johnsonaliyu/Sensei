@@ -408,7 +408,7 @@ function LoginPage() {
     event.preventDefault(); setError(''); setMessage('');
     if (!supabase) { setError('Authentication is not configured. Add the Supabase environment variables to continue.'); return; }
     setBusy(true);
-    const result = mode === 'signin' ? await supabase.auth.signInWithPassword({ email, password }) : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/login` } })
+    const result = mode === 'signin' ? await supabase.auth.signInWithPassword({ email, password }) : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/login` } });
     setBusy(false);
     if (result.error) setError(result.error.message);
     else if (mode === 'signup' && !result.data.session) setMessage('Check your email for a confirmation link. After confirming, sign in to continue.');
