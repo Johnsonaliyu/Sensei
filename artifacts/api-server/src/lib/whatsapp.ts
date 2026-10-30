@@ -491,7 +491,7 @@ let lastRestoreAt = 0;
 let restoreRunning = false;
 
 export async function restoreSavedWhatsappSessions(): Promise<void> {
-  if (restoreRunning || Date.now() - lastRestoreAt < 30_000) return;
+  if (restoreRunning || Date.now() - lastRestoreAt < 120_000) return;
   restoreRunning = true;
   lastRestoreAt = Date.now();
   try {
@@ -499,7 +499,7 @@ export async function restoreSavedWhatsappSessions(): Promise<void> {
     const { data: rows, error } = await admin
       .from("sensei_whatsapp_sessions")
       .select("user_id")
-      .in("connection_state", ["connected", "reconnecting"]);
+      .in("connection_state", ["connected", "reconnecting", "error"]);
     if (error) throw error;
 
     for (const { user_id: userId } of (rows ?? []) as Array<{ user_id: string }>) {
