@@ -487,22 +487,36 @@ export async function loadBotConfigForUser(userId: string): Promise<BotConfig> {
   return readBotConfig(userId);
 }
 
+let lastRestoreAt = 0;
+let restoreRunning = false;
+
 export async function restoreSavedWhatsappSessions(): Promise<void> {
+  if (restoreRunning || Date.now() - lastRestoreAt < 30_000) return;
+  restoreRunning = true;
+  lastRestoreAt = Date.now();
   try {
-    const { data, error } = await getSupabaseAdmin()
+    const admin = getSupabaseAdmin();
+    const { data: rows, error } = await admin
       .from("sensei_whatsapp_sessions")
-      .select("user_id, encrypted_auth_state, connection_state, phone_number, connected_at, error_message")
-      .not("encrypted_auth_state", "is", null)
+      .select("user_id")
       .in("connection_state", ["connected", "reconnecting"]);
     if (error) throw error;
 
-    for (const row of (data ?? []) as Array<StoredSession & { user_id: string }>) {
-      if (sessions.get(row.user_id)?.socket) continue;
-      void createSession(row.user_id, row).catch((err: unknown) => {
-        logger.warn({ err, userId: row.user_id }, "Automatic WhatsApp restore failed");
+    for (const { user_id: userId } of (rows ?? []) as Array<{ user_id: string }>) {
+      if (sessions.get(userId)?.socket) continue;
+      const { data: row, error: rowError } = await admin
+        .from("sensei_whatsapp_sessions")
+        .select("encrypted_auth_state, connection_state, phone_number, connected_at, error_message")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (rowError || !row?.encrypted_auth_state) continue;
+      void createSession(userId, row as StoredSession).catch((err: unknown) => {
+        logger.warn({ err, userId }, "Automatic WhatsApp restore failed");
       });
     }
   } catch (err) {
     logger.error({ err }, "Could not check saved WhatsApp sessions");
+  } finally {
+    restoreRunning = false;
   }
 }
